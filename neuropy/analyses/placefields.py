@@ -90,9 +90,11 @@ class Pf1D(core.Ratemap):
         epochs: core.Epoch = None,
         frate_thresh=1.0,
         speed_thresh=3,
+        spkcount_thresh = 0,
         grid_bin=5,
         sigma=0,
         sigma_pos=0.1,
+        verbose = True
     ):
         """computes 1d place field using linearized coordinates. It always computes two place maps with and
         without speed thresholds.
@@ -160,7 +162,9 @@ class Pf1D(core.Ratemap):
             )
 
             speed_thresh = None
-            print("Note: speed_thresh is ignored when epochs is provided")
+            
+            if verbose:
+                print("Note: speed_thresh is ignored when epochs is provided")
         else:
             spiketrains = neurons.time_slice(t_start, t_stop).spiketrains
             indx = np.where(speed >= speed_thresh)[0]
@@ -193,6 +197,13 @@ class Pf1D(core.Ratemap):
         neuron_ids = neuron_ids[frate_thresh_indx]
         spk_t = [spk_t[_] for _ in frate_thresh_indx]
         spk_pos = [spk_pos[_] for _ in frate_thresh_indx]
+        
+        # ----- neurons with minimum number of spikes --------
+        spk_thresh_indx = np.where([len(spikes) >= spkcount_thresh for spikes in spk_t])[0]
+        tuning_curve = tuning_curve[spk_thresh_indx, :]
+        neuron_ids = neuron_ids[spk_thresh_indx]
+        spk_t = [spk_t[_] for _ in spk_thresh_indx]
+        spk_pos = [spk_pos[_] for _ in spk_thresh_indx]
 
         super().__init__(
             tuning_curves=tuning_curve, coords=xbin[:-1], neuron_ids=neuron_ids
@@ -202,6 +213,7 @@ class Pf1D(core.Ratemap):
         self.occupancy = occupancy
         self.frate_thresh = frate_thresh
         self.speed_thresh = speed_thresh
+        self.spkcount_thresh = spkcount_thresh
         self.speed = speed
         self.t = t
         self.x = x

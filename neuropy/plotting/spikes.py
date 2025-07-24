@@ -22,6 +22,7 @@ def plot_raster(
     add_vert_jitter=False,
     alpha=1,
     rasterized=False,
+    timewindow = None #send in seconds [start end]
 ):
     """creates raster plot using spiketrains in neurons
 
@@ -55,8 +56,18 @@ def plot_raster(
             color = [cmap(_ / n_neurons) for _ in range(n_neurons)]
         except:
             color = [color] * n_neurons
-
-    for ind, spiketrain in enumerate(neurons.spiketrains):
+            
+    if sort_by_frate == True:
+        sorted_indices = np.argsort(neurons.firing_rate)
+        spiketrains = [neurons.spiketrains[i] for i in sorted_indices]
+    else:
+        spiketrains = neurons.spiketrains
+     
+    if timewindow != None:
+        for i,spks in enumerate(spiketrains):
+            spiketrains[i] = spks[(spks > timewindow[0]) & (spks < timewindow[1])]
+        
+    for ind, spiketrain in enumerate(spiketrains):
         if add_vert_jitter:
             jitter_add = np.random.randn(len(spiketrain)) * 0.1
         else:
@@ -72,7 +83,10 @@ def plot_raster(
             rasterized=rasterized,
         )
 
-    ax.set_xlim([neurons.t_start, neurons.t_stop])
+    if timewindow!= None:
+        ax.set_xlim(timewindow)
+    else:
+        ax.set_xlim([neurons.t_start, neurons.t_stop])
     # ax.ticklabel_format(axis="x", useOffset=False)
     # ax.tick_params(axis="x", rotation=30)
     ax.set_xlabel("Time (s)")
